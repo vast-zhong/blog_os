@@ -12,6 +12,8 @@ fn panic(_info: &PanicInfo) -> ! {
 
 #[unsafe(no_mangle)] // 不重整函数名
 pub extern "C" fn _start() -> ! {
-    vga_buffer::print_something(); 
+    use core::fmt::Write;
+    vga_buffer::WRITER.lock().write_str("Hello, world!").unwrap();
+    write!(vga_buffer::WRITER.lock(), ", some numbers: {} {}", 4, 3.141).unwrap();
     loop {}
 }
