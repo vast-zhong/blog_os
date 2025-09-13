@@ -1,5 +1,5 @@
 [package]
-name = "crate_name"
+name = "blog_os"
 version = "0.1.0"
 authors = ["vastz"]
 edition = "2024"
@@ -11,3 +11,11 @@ panic = "abort" # 禁用panic时栈展开
 # 使用 `cargo build --release` 编译时需要的配置
 [profile.release]
 panic = "abort" # 禁用 panic 时栈展开
+
+[[bin]]
+name = "blog_os"
+test = false
+bench = false
+
+[dependencies]
+bootloader = "0.9"
