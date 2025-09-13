@@ -1,5 +1,15 @@
+use lazy_static::lazy_static;
+use spin::Mutex;
 use volatile::Volatile;
 use core::fmt;
+
+lazy_static! {
+    pub static ref WRITER: Mutex<Writer> =Mutex::new(Writer {
+        column_position: 0,
+        color_code: ColorCode::new(Color::Yellow, Color::Black),
+        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
+    });
+}
 
 #[allow(dead_code)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -95,9 +105,9 @@ impl Writer {
                 let screen_char = self.buffer.chars[row][col].read();
                 self.buffer.chars[row - 1][col].write(screen_char);
             }
-            self.clear_row(BUFFER_HEIGHT - 1);
-            self.column_position = 0;
         }
+        self.clear_row(BUFFER_HEIGHT - 1);
+        self.column_position = 0;
     }
 
     fn clear_row(&mut self, row: usize) {
@@ -113,20 +123,11 @@ impl Writer {
 
 }
 
-use lazy_static::lazy_static;
-use spin::Mutex;
-
 // Create a global writer, and all other function(main, error...) can call it
 // lazy_static! is a macro that allows you to create a static variable that is initialized lazily.
 // The variable will be initialized the first time it is accessed.
 // spin::Mutex protect only one function can use Writer.
-lazy_static! {
-    pub static ref WRITER: Mutex<Writer> =Mutex::new(Writer {
-        column_position: 0,
-        color_code: ColorCode::new(Color::Yellow, Color::Black),
-        buffer: unsafe { &mut *(0xb8000 as *mut Buffer) },
-    });
-}
+
 
 
 // pub fn print_something() {
@@ -150,4 +151,24 @@ impl fmt::Write for Writer {
         // Ok(()) is Ok result include ()
         Ok(())
     }
+}
+
+/// Like the `print!` macro in the standard library, but prints to the VGA text buffer.
+#[macro_export]
+macro_rules! print {
+    ($($arg:tt)*) => ($crate::vga_buffer::_print(format_args!($($arg)*)));
+}
+
+/// Like the `println!` macro in the standard library, but prints to the VGA text buffer.
+#[macro_export]
+macro_rules! println {
+    () => ($crate::print!("\n"));
+    ($($arg:tt)*) => ($crate::print!("{}\n", format_args!($($arg)*)));
+}
+
+/// Prints the given formatted string to the VGA text buffer through the global `WRITER` instance.
+#[doc(hidden)]
+pub fn _print(args: fmt::Arguments) {
+    use core::fmt::Write;
+    WRITER.lock().write_fmt(args).unwrap();
 }

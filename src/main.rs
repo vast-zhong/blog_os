@@ -4,16 +4,15 @@
 use core::panic::PanicInfo;
 mod vga_buffer;
 
-/// 这个函数将在 panic 时被调用
-#[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+#[unsafe(no_mangle)] // 不重整函数名
+pub extern "C" fn _start() -> ! {
+    println!("Hello, world{}", "!");
     loop {}
 }
 
-#[unsafe(no_mangle)] // 不重整函数名
-pub extern "C" fn _start() -> ! {
-    use core::fmt::Write;
-    vga_buffer::WRITER.lock().write_str("Hello, world!").unwrap();
-    write!(vga_buffer::WRITER.lock(), ", some numbers: {} {}", 4, 3.141).unwrap();
+/// 这个函数将在 panic 时被调用
+#[panic_handler]
+fn panic(_info: &PanicInfo) -> ! {
+    println!("{}", _info);
     loop {}
 }
